@@ -1,0 +1,239 @@
+# John Michael Riveros Gavilanes
+# 20/05/2023
+# Version 1.0
+# Web: Personal web page: https://sites.google.com/view/riveros-empirical-rj-project/rstudio
+
+
+
+# install.packages("dash")
+install.packages("remotes")
+remotes::install_github("plotly/dashR", upgrade = "always")
+
+#library(dash)
+#library(dashCoreComponents)
+library(WDI)
+library(ggplot2)
+library(dplyr)
+library(tibble)
+library(Hmisc)
+library(sjlabelled)
+#install.packages("ggdark")
+library(ggdark)
+library(plotly)
+
+#install.packages("GGally")
+library(GGally)
+
+#install.packages("akima")
+library(akima)
+
+
+# Getting data
+
+df <- WDI(indicator = c("AG.PRD.FOOD.XD", # Food production index
+                        "SP.RUR.TOTL", # Rural population
+                        "SH.TBS.INCD",  # Incidence of tuberculosis (per 100,000 people)
+                        "SH.STA.MMRT", # Maternal mortality ratio (modeled estimate, per 100,000 live births)
+                        "SM.POP.NETM", # Net migration
+                        "EN.ATM.CO2E.PC", # CO2 emissions (metric tons per capita)
+                        "SP.URB.TOTL", # Urban population
+                        "NE.EXP.GNFS.ZS", #  "Exports of goods and services (% of GDP)"
+                        "BX.KLT.DINV.CD.WD", # Foreign direct investment, net inflows (BoP, current US$)
+                        "NY.GDP.PCAP.CD", # GDP per capita (current US$)
+                        "SL.TLF.TOTL.IN", # Labor force, total
+                        "SE.TER.ENRR", # School enrollment, tertiary (% gross)
+                        "SE.SEC.ENRR", # School enrollment, secondary (% gross)
+                        "SL.UEM.TOTL.ZS", # Unemployment, total (% of total labor force)
+                        "SP.DYN.LE00.IN", # Life expectancy at birth
+                        "SH.HIV.1524.FE.ZS", # Prevalence of HIV, female (% ages 15-24)
+                        "SI.POV.GINI", # Gini index
+                        "VC.IHR.PSRC.P5", # Intentional homicides (per 100,000 people)
+                        "MS.MIL.XPND.ZS" # Military expenditure (% of general government expenditure)
+                        ),
+          extra = TRUE)
+
+save(df, file="C:/Users/Michael/Documents/Empirical Analysis RJ/R Example/data.RData")
+
+
+# Let the magic begin
+
+
+
+load("C:/Users/Michael/Documents/Empirical Analysis RJ/R Example/data.RData")
+
+names(df)
+
+df$status <- NULL
+df$lastupdated <- NULL
+df$capital <- NULL
+df$lending <- NULL
+
+
+# Creating labels to be replaced by variable names later.
+
+label(df$country) <- "Country"
+label(df$iso2c) <- "ISO2C"
+label(df$iso3c) <- "ISO3C"
+label(df$year) <- "Year"
+label(df$region) <- "Region"
+label(df$longitude) <- "Longitude"
+label(df$latitude) <- "Latitude"
+label(df$income) <- "Income Class"
+
+
+# replacing variable name with labels
+
+label(df)
+
+df <- label_to_colnames(df)
+
+label(df)
+
+# Delete aggregates and NA from region
+
+df <- df[df$Region!="Aggregates",]
+df <- df[!is.na(df$Region),]
+
+#Plots
+
+plot1 <- ggplot(df[df$Year>2008,], 
+                aes(x=`Gini index`, y = `Intentional homicides (per 100,000 people)`,
+               color=Region)) + 
+  geom_point() + geom_smooth(aes(group=1), method = "lm", se = FALSE) +
+   dark_mode()
+
+ggplotly(plot1)
+
+test <- ggplotly(plot1)
+object.size(test)
+
+
+# Second plot
+
+plot2 <- ggplot(df[df$Year>2011,], 
+                aes(x=`Incidence of tuberculosis (per 100,000 people)`, y = `Intentional homicides (per 100,000 people)`,
+                    color=Region)) + 
+  geom_point() + geom_smooth(aes(group=1), method = "lm", se = FALSE) +
+  dark_mode()
+
+ggplotly(plot2)
+
+test <- ggplotly(plot2)
+object.size(test)
+
+# Third plot
+
+plot3 <- ggplot(df[df$Year>2011,], 
+                aes(x=`School enrollment, secondary (% gross)`, y = `Intentional homicides (per 100,000 people)`,
+                    color=Region)) + 
+  geom_point() + geom_smooth(aes(group=1), method = "lm", se = FALSE) +
+  dark_mode()
+
+ggplotly(plot3)
+
+test <- ggplotly(plot3)
+object.size(test)
+
+
+## Plot 4
+
+plot4 <- ggplot(df[df$Year>2011,], 
+                aes(x=`School enrollment, tertiary (% gross)`, y = `Intentional homicides (per 100,000 people)`,
+                    color=Region)) + 
+  geom_point() + geom_smooth(aes(group=1), method = "lm", se = FALSE) +
+  dark_mode()
+
+ggplotly(plot4)
+
+test <- ggplotly(plot4)
+object.size(test)
+
+# Plot 5
+
+df_d <- df[df$`Income Class`!="Not classified",]
+
+plot5 <- ggplot(df_d, aes(x = `Gini index`, fill = `Income Class`)) +
+  geom_density(alpha = 0.5) +
+  dark_mode()
+
+ggplotly(plot5)
+
+test <- ggplotly(plot5)
+object.size(test)
+
+# Plot 6
+
+df_d$Continent <- "Not classified"
+df_d$Continent <- ifelse(df_d$Region=="Europe & Central Asia", "Europe", 
+                         ifelse(df_d$Region=="Latin America & Caribbean" | df_d$Region=="North America",
+                                "America", 
+                                ifelse(df_d$Region=="Middle East & North Africa" | df_d$Region=="Sub-Saharan Africa", 
+                                                   "Africa", "Other")))
+
+table(df_d$Continent)
+
+plot6 <- ggplot(df_d[df_d$Year>2010,], aes(x = `Gini index`, fill = `Continent`)) +
+  geom_density(alpha = 0.5) +
+  dark_mode()
+
+ggplotly(plot6)
+
+test <- ggplotly(plot6)
+object.size(test)
+
+
+# Plot 7 
+
+plot7 <- plot_ly(data=df, 
+        x= ~`Gini index`, y=~`GDP per capita (current US$)`,
+        z= ~`Intentional homicides (per 100,000 people)`,
+        mode="markers", symbol = df$`Income Class` , symbols ="x",
+        marker= list(size=3),
+        color = ~`Income Class`) %>%
+  layout(plot_bgcolor="black") %>% 
+  layout(paper_bgcolor='black') %>%
+  layout(scene = list(xaxis= list(title="Gini"),
+                      yaxis= list(title="GDP per capita"),
+                      zaxis= list(title="Homicides")))
+object.size(plot7)
+    
+## plot8
+
+#https://stackoverflow.com/questions/45405167/r-plotly-how-to-get-3d-surface-with-lat-long-and-z
+
+df_e <- df[,c("Gini index", "GDP per capita (current US$)",
+              "Intentional homicides (per 100,000 people)",
+              "Income Class")]
+df_e <- df_e[complete.cases(df_e),]
+
+
+s = interp(x=df_e$`Gini index`, y=df_e$`GDP per capita (current US$)`,
+           z=df_e$`Intentional homicides (per 100,000 people)`,
+           linear = TRUE)
+
+plot8 <- plot_ly(x = s$x, y = s$y, z = t(s$z)) %>% add_surface()   %>%
+layout(plot_bgcolor="black") %>% 
+layout(paper_bgcolor='black') %>%
+layout(scene = list(xaxis= list(title="Gini"),
+                     yaxis= list(title="GDP per capita"),
+                     zaxis= list(title="Homicides")))
+                   
+# Transpose attributed z https://stackoverflow.com/questions/61117221/plotting-3d-surface-with-plotly-matrix-transformation-with-akimainterp
+
+object.size(plot8)
+
+Sys.setenv("plotly_username"="Not for your eyes")
+Sys.setenv("plotly_api_key"="Not for your eyes either")
+
+# sharing
+
+api_create(plot1, filename = "Homicides_v_Gini_scatter")
+api_create(plot2, filename = "Homicides_v_Tuberculosis_scatter")
+api_create(plot3, filename = "Homicides_v_Secondary_school_scatter")
+api_create(plot4, filename = "Homicides_v_Tertiary_school_scatter")
+api_create(plot5, filename = "Inequality_densities")
+api_create(plot6, filename = "Inequality_densities_by_region")
+api_create(plot7, filename = "3D_Gini_GDP_Violence")
+api_create(plot8, filename = "3D_Mesh_Gini_GDP_Violence")
+
+
